@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="te">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Kolli Tatababu">
+<title>Linkers Audio Class</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Guntur:wght@400;500;600;700&family=Ramabhadra&display=swap">
+<style>
+/* Layout: sticky teacher header, one column of lesson cards, fixed bottom player bar with a big ON/OFF switch */
+:root {
+  --bg: #eef2f8;
+  --surface: #ffffff;
+  --ink: #1a2232;
+  --muted: #56617a;
+  --line: #d6dde9;
+  --accent: #1f4e9c;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3ebf8;
+  --hl: #ffe7a3;
+  --hl-ink: #3b2a00;
+  --ok: #1d7a4e;
+  --bad: #b3261e;
+  --on: #1d8a52;
+  --off: #b3261e;
+  --display: "Ramabhadra", "Hind Guntur", "Noto Sans Telugu", sans-serif;
+  --body: "Hind Guntur", "Noto Sans Telugu", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1522; --surface: #182133; --ink: #e6ebf5; --muted: #9aa6bf; --line: #2b3850;
+    --accent: #7fa6ec; --accent-ink: #0f1522; --accent-soft: #1e2b45; --hl: #5a4708; --hl-ink: #fff3cc;
+    --ok: #5ccb93; --bad: #ff8a80; --on: #3fbf7f; --off: #e5675c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1522; --surface: #182133; --ink: #e6ebf5; --muted: #9aa6bf; --line: #2b3850;
+  --accent: #7fa6ec; --accent-ink: #0f1522; --accent-soft: #1e2b45; --hl: #5a4708; --hl-ink: #fff3cc;
+  --ok: #5ccb93; --bad: #ff8a80; --on: #3fbf7f; --off: #e5675c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.6; margin: 0; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 0 190px; }
+
+header.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--accent); color: var(--accent-ink);
+  margin-inline: -16px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 14px;
+}
+header.top img { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--accent-ink); object-fit: cover; flex-shrink: 0; }
+header.top .t { min-width: 0; }
+header.top h1 { font-family: var(--display); font-weight: 400; font-size: 1.45rem; line-height: 1.2; margin: 0; text-wrap: balance; }
+header.top .sub { font-size: .9rem; opacity: .9; }
+
+.intro { margin-block: 18px 6px; color: var(--muted); font-size: .98rem; }
+.voicewarn { background: var(--hl); color: var(--hl-ink); border-radius: 10px; padding: 10px 14px; margin-top: 12px; font-size: .95rem; }
+
+.lessons { display: flex; flex-direction: column; gap: 16px; margin-top: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; scroll-margin-top: 110px; transition: box-shadow .2s, border-color .2s; }
+.card.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.card h2 { margin: 0; padding: 12px 16px; font-size: 1.12rem; font-weight: 700; display: flex; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--line); }
+.card h2 .no { font-family: var(--display); font-weight: 400; color: var(--accent); font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.card .content { padding: 12px 16px; }
+.card .content p { margin: 0 0 8px; }
+.ex { margin: 4px 0; }
+.ex b { color: var(--accent); }
+.good { color: var(--ok); font-weight: 700; }
+.wrong { color: var(--bad); font-weight: 700; text-decoration: line-through; }
+.formula { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; padding: 10px; border: 1.5px dashed var(--accent); border-radius: 10px; font-weight: 700; margin: 6px 0 10px; }
+.tag { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 12px; }
+
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .96rem; }
+th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: .85rem; letter-spacing: .03em; }
+td.pv { font-weight: 700; color: var(--accent); }
+td { overflow-wrap: anywhere; }
+
+.q { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; margin-top: 8px; }
+.q .opts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 4px; }
+.ans { margin-top: 6px; font-weight: 700; color: var(--ok); }
+
+details.say { border-top: 1px dashed var(--line); }
+details.say summary { cursor: pointer; padding: 10px 16px; font-weight: 600; color: var(--muted); font-size: .92rem; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+details.say summary::-webkit-details-marker { display: none; }
+details.say summary .from { border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 999px; padding: 4px 12px; font: inherit; font-size: .85rem; cursor: pointer; white-space: nowrap; }
+details.say .lines { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 4px; }
+.seg { border-radius: 6px; padding: 2px 6px; margin-inline: -6px; transition: background .15s; }
+.seg[lang="en"] { font-style: italic; }
+.seg.now { background: var(--hl); color: var(--hl-ink); }
+
+footer.credit { text-align: center; margin-top: 26px; padding: 14px; border-top: 2px solid var(--accent); color: var(--accent); font-weight: 700; font-size: 1rem; }
+
+.player {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -6px 18px rgba(0,0,0,.08);
+}
+.player .inner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 8px; }
+.now-title { font-size: .9rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now-title b { color: var(--ink); }
+.bar { height: 5px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.ctrls { display: flex; align-items: center; gap: 10px; }
+.btn { font: inherit; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 12px; height: 48px; min-width: 48px; padding: 0 12px; font-weight: 600; cursor: pointer; }
+.btn:focus-visible, .switch:focus-visible, .from:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.switch {
+  flex: 1; height: 54px; border-radius: 999px; border: none; cursor: pointer; font: inherit;
+  font-weight: 700; font-size: 1.15rem; display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: var(--on); color: #fff;
+}
+.switch.isOn { background: var(--off); }
+.switch .dot { width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+.switch.isOn .dot { animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .switch.isOn .dot { animation: none; } .card { transition: none; } }
+.speed { display: flex; align-items: center; gap: 8px; font-size: .85rem; color: var(--muted); }
+.speed input { flex: 1; accent-color: var(--accent); }
+.speed output { font-variant-numeric: tabular-nums; min-width: 3.2em; text-align: right; }
+</style>
+<style>html{color-scheme:light}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <img id="photo" alt="ఉపాధ్యాయుడు కొల్లి తాతబాబు" src="">
+    <div class="t">
+      <h1>Linkers – వినే పాఠం</h1>
+      <div class="sub">AP TET · English · English & తెలుగు వివరణ</div>
+    </div>
+  </header>
+
+  <p class="intro">కింద ఉన్న <b>ఆన్</b> బటన్ నొక్కితే పాఠం తనంతట తానే వివరిస్తూ చదువుతుంది. ఆపాలంటే <b>ఆఫ్</b> నొక్కండి. ఏ భాగం నుండైనా వినాలంటే ఆ భాగంలో "ఇక్కడి నుండి వినండి" నొక్కండి.</p>
+  <div id="voicewarn" class="voicewarn" hidden></div>
+
+  <div class="lessons" id="lessons"></div>
+
+  <footer class="credit">ఈ యాప్ ఉపాధ్యాయుడు కొల్లి తాతబాబు చే డిజైన్ చేయబడింది</footer>
+</div>
+
+<div class="player" role="region" aria-label="Player">
+  <div class="inner">
+    <div class="now-title" id="nowTitle">సిద్ధంగా ఉంది · <b>1. పరిచయం</b></div>
+    <div class="bar"><span id="prog"></span></div>
+    <div class="ctrls">
+      <button class="btn" id="prev" aria-label="మునుపటి భాగం">⏮</button>
+      <button class="switch" id="toggle" aria-pressed="false"><span class="dot"></span><span id="toggleLabel">ఆన్ – వినండి</span></button>
+      <button class="btn" id="next" aria-label="తరువాతి భాగం">⏭</button>
+      <button class="btn" id="restart" aria-label="మొదటి నుండి">↺</button>
+    </div>
+    <label class="speed" for="rate">వేగం <input id="rate" type="range" min="0.6" max="1.4" step="0.1" value="0.9"><output id="rateOut">0.9×</output></label>
+  </div>
+</div>
+
+<script>
+const PHOTO = "data:image/jpeg;base64,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";
+document.getElementById('photo').src = PHOTO;
+
+const T = (t) => ['te', t], E = (t) => ['en', t];
+
+const sections = [
+  { title: "పరిచయం", html: `
+      <p>నమస్కారం! ఈ పాఠంలో <b>Linkers</b> (కలిపే పదాలు) గురించి నేర్చుకుంటాం.</p>
+      <p>AP TET సిలబస్‌లో Linkers కు "Identification of functions, usages, position, cohesion with appropriate linkers" అని ఉంది. అంటే ఏ linker ఏ పని చేస్తుందో, వాక్యంలో ఎక్కడ వస్తుందో, సరైన linker ఏదో గుర్తించడం రావాలి.</p>`,
+    say: [T("నమస్కారం విద్యార్థులారా."), T("ఈ రోజు మనం Linkers గురించి నేర్చుకుందాం. తెలుగులో వీటిని కలిపే పదాలు అనవచ్చు."),
+          T("A P TET సిలబస్ ప్రకారం, ఏ linker ఏ పని చేస్తుందో, వాక్యంలో ఎక్కడ వస్తుందో, సందర్భానికి సరైన linker ఏదో గుర్తించడం రావాలి."),
+          T("జాగ్రత్తగా వినండి.")] },
+
+  { title: "నిర్వచనం – What are Linkers?", html: `
+      <p><b>English:</b> Linkers (also called connectors or conjunctions) are words or phrases that join words, clauses or sentences and show the relationship between ideas.</p>
+      <p><b>తెలుగు:</b> పదాలను, వాక్య భాగాలను, వాక్యాలను కలిపి, ఆలోచనల మధ్య సంబంధాన్ని (కలపడం, వ్యతిరేకత, కారణం, ఫలితం, షరతు) తెలియజేసే పదాలను Linkers అంటారు.</p>
+      <p class="ex">He is poor <b>but</b> honest. · I stayed at home <b>because</b> it was raining.</p>
+      <div class="formula"><span class="tag">ఆలోచన 1</span> + <span class="tag">Linker = సంబంధం</span> + <span class="tag">ఆలోచన 2</span></div>`,
+    say: [E("Linkers are words or phrases that join words, clauses or sentences and show the relationship between ideas."),
+          T("అంటే, పదాలను గానీ, వాక్యాలను గానీ కలిపి, రెండు ఆలోచనల మధ్య ఉన్న సంబంధాన్ని చెప్పే పదాలను linkers అంటారు."),
+          T("వీటినే connectors, లేదా conjunctions అని కూడా అంటారు."),
+          E("He is poor but honest."), T("ఇక్కడ but వ్యతిరేకతను చూపిస్తుంది."),
+          E("I stayed at home because it was raining."), T("ఇక్కడ because కారణాన్ని చూపిస్తుంది."),
+          T("ముఖ్యమైన ట్రిక్. ప్రశ్నలో ఖాళీకి ముందు, తర్వాత ఉన్న రెండు భాగాల మధ్య సంబంధం ఏమిటో ముందు ఆలోచించండి. అదే సమాధానం చెబుతుంది.")] },
+
+  { title: "Linkers – రకాలు (ఒక్క చూపులో)", html: `
+      <div class="tablewrap"><table>
+        <thead><tr><th>పని (Function)</th><th>Linkers</th></tr></thead>
+        <tbody>
+          <tr><td>కలపడం (Addition)</td><td class="pv">and, also, moreover, besides, furthermore, in addition, as well as</td></tr>
+          <tr><td>వ్యతిరేకత (Contrast)</td><td class="pv">but, yet, however, although, though, despite, in spite of, whereas, while, nevertheless</td></tr>
+          <tr><td>కారణం (Cause)</td><td class="pv">because, since, as, because of, due to, owing to</td></tr>
+          <tr><td>ఫలితం (Result)</td><td class="pv">so, therefore, thus, hence, consequently, as a result</td></tr>
+          <tr><td>షరతు (Condition)</td><td class="pv">if, unless, provided that, in case, as long as</td></tr>
+          <tr><td>ఉద్దేశం (Purpose)</td><td class="pv">so that, in order to, lest</td></tr>
+          <tr><td>సమయం (Time)</td><td class="pv">when, while, before, after, as soon as, until, till</td></tr>
+          <tr><td>ఎంపిక (Choice)</td><td class="pv">or, either…or, neither…nor, otherwise</td></tr>
+          <tr><td>ఉదాహరణ (Example)</td><td class="pv">for example, for instance, such as</td></tr>
+          <tr><td>సారాంశం (Summary)</td><td class="pv">in short, in brief, in conclusion, finally</td></tr>
+        </tbody></table></div>`,
+    say: [T("ఇప్పుడు linkers రకాలను పని ఆధారంగా ఒక్క చూపులో చూద్దాం."),
+          T("కలపడానికి. and, also, moreover, besides, furthermore, in addition."),
+          T("వ్యతిరేకతకు. but, yet, however, although, though, despite, in spite of, whereas."),
+          T("కారణానికి. because, since, as, because of, due to."),
+          T("ఫలితానికి. so, therefore, thus, hence, consequently."),
+          T("షరతుకు. if, unless, provided that, in case."),
+          T("ఉద్దేశానికి. so that, in order to, lest."),
+          T("సమయానికి. when, while, before, after, as soon as, until."),
+          T("ఎంపికకు. or, either or, neither nor, otherwise."),
+          T("ఉదాహరణకు. for example, such as. సారాంశానికి. in short, in conclusion."),
+          T("ఇప్పుడు ముఖ్యమైన వాటిని నియమాలతో ఒక్కొక్కటిగా చూద్దాం.")] },
+
+  { title: "1. కలపడం – Addition", html: `
+      <div class="tablewrap"><table>
+        <thead><tr><th>Linker</th><th>ఉదాహరణ</th></tr></thead>
+        <tbody>
+          <tr><td class="pv">and</td><td>Ravi <b>and</b> Sita are friends.</td></tr>
+          <tr><td class="pv">also</td><td>He sings. He <b>also</b> dances.</td></tr>
+          <tr><td class="pv">moreover / furthermore</td><td>The house is big. <b>Moreover</b>, it is cheap.</td></tr>
+          <tr><td class="pv">besides / in addition</td><td><b>Besides</b> English, he knows Hindi.</td></tr>
+          <tr><td class="pv">as well as</td><td>She <b>as well as</b> her friends <b>is</b> coming.</td></tr>
+          <tr><td class="pv">not only … but also</td><td>He is <b>not only</b> clever <b>but also</b> hardworking.</td></tr>
+        </tbody></table></div>
+      <p style="margin-top:8px"><b>ట్రిక్:</b> <b>as well as</b> తో verb మొదటి subject ను బట్టి: <span class="good">She as well as her friends is…</span></p>`,
+    say: [T("మొదటి రకం. కలపడం, అంటే Addition."),
+          T("and రెండు సమానమైన వాటిని కలుపుతుంది."), E("Ravi and Sita are friends."),
+          T("also అంటే కూడా."), E("He sings. He also dances."),
+          T("moreover, furthermore అంటే అంతేకాక. ఇవి సాధారణంగా వాక్యం మొదట్లో, కామాతో వస్తాయి."),
+          E("The house is big. Moreover, it is cheap."),
+          T("besides అంటే దానితో పాటు."), E("Besides English, he knows Hindi."),
+          T("as well as తో ట్రిక్. Verb మొదటి subject ను బట్టి వస్తుంది."),
+          E("She as well as her friends is coming."),
+          T("not only, but also. రెండూ కలిసే వస్తాయి."), E("He is not only clever but also hardworking.")] },
+
+  { title: "2. వ్యతిరేకత – But, Yet, However", html: `
+      <div class="tablewrap"><table>
+        <thead><tr><th>Linker</th><th>స్థానం</th><th>ఉదాహరణ</th></tr></thead>
+        <tbody>
+          <tr><td class="pv">but</td><td>రెండు భాగాల మధ్య</td><td>He is poor <b>but</b> honest.</td></tr>
+          <tr><td class="pv">yet</td><td>మధ్యలో (అయినప్పటికీ)</td><td>He worked hard, <b>yet</b> he failed.</td></tr>
+          <tr><td class="pv">however</td><td>కొత్త వాక్యం మొదట్లో, తర్వాత కామా</td><td>It was raining. <b>However</b>, we went out.</td></tr>
+          <tr><td class="pv">nevertheless</td><td>కొత్త వాక్యం మొదట్లో</td><td>He was tired. <b>Nevertheless</b>, he continued.</td></tr>
+          <tr><td class="pv">whereas / while</td><td>రెండింటి పోలికలో తేడా</td><td>Ravi is tall, <b>whereas</b> his brother is short.</td></tr>
+        </tbody></table></div>`,
+    say: [T("రెండవ రకం. వ్యతిరేకత, అంటే Contrast. పరీక్షలో అతి ఎక్కువగా వచ్చేది ఇదే."),
+          T("but రెండు వ్యతిరేక భాగాలను మధ్యలో కలుపుతుంది."), E("He is poor but honest."),
+          T("yet అంటే అయినప్పటికీ."), E("He worked hard, yet he failed."),
+          T("however, nevertheless సాధారణంగా కొత్త వాక్యం మొదట్లో వస్తాయి. తర్వాత కామా ఉంటుంది."),
+          E("It was raining. However, we went out."),
+          T("whereas, while రెండు విషయాల మధ్య తేడాను పోల్చి చెబుతాయి."),
+          E("Ravi is tall, whereas his brother is short.")] },
+
+  { title: "2. వ్యతిరేకత – Although vs Despite", html: `
+      <div class="formula"><span class="tag">Although / Though / Even though</span> + <span class="tag">Subject + Verb</span></div>
+      <div class="formula"><span class="tag">Despite / In spite of</span> + <span class="tag">Noun / V-ing</span></div>
+      <p class="ex"><b>Although</b> it was raining, we went out.</p>
+      <p class="ex"><b>Despite</b> the rain, we went out.</p>
+      <p class="ex"><b>In spite of</b> being ill, he attended the class.</p>
+      <p style="margin-top:8px"><b>అతి ముఖ్యమైన ట్రిక్స్:</b></p>
+      <p><span class="wrong">Although he is poor, but he is honest.</span><br><span class="good">Although he is poor, he is honest.</span> — although తో but రాదు. (yet రావచ్చు)</p>
+      <p><span class="wrong">despite of</span> <span class="good">despite</span> · <span class="good">in spite of</span> — despite తో of రాదు.</p>`,
+    say: [T("ఇప్పుడు పరీక్షలో అతి ఎక్కువగా అడిగే జంట. although మరియు despite."),
+          T("although, though, even though తర్వాత పూర్తి వాక్యం వస్తుంది. అంటే subject, verb ఉంటాయి."),
+          E("Although it was raining, we went out."),
+          T("despite, in spite of తర్వాత noun గానీ, ing రూపం గానీ వస్తుంది. పూర్తి వాక్యం రాదు."),
+          E("Despite the rain, we went out."), E("In spite of being ill, he attended the class."),
+          T("అతి ముఖ్యమైన ట్రిక్. although ఉన్న వాక్యంలో but రాదు."),
+          T("Although he is poor, but he is honest. ఇది తప్పు."),
+          E("Although he is poor, he is honest."), T("ఇది సరైనది. కావాలంటే yet వాడవచ్చు."),
+          T("రెండవ ట్రిక్. despite of అనడం తప్పు. despite అనాలి, లేదా in spite of అనాలి.")] },
+
+  { title: "3. కారణం – Cause / Reason", html: `
+      <div class="formula"><span class="tag">because / since / as</span> + <span class="tag">Subject + Verb</span></div>
+      <div class="formula"><span class="tag">because of / due to / owing to</span> + <span class="tag">Noun</span></div>
+      <p class="ex">He was absent <b>because</b> he was ill.</p>
+      <p class="ex">He was absent <b>because of</b> illness.</p>
+      <p class="ex"><b>Since</b> it is late, let us go home.</p>
+      <p class="ex"><b>As</b> I was tired, I went to bed early.</p>
+      <p class="ex">The match was cancelled <b>due to</b> rain.</p>
+      <p style="margin-top:8px"><b>ట్రిక్:</b> <span class="wrong">Because he was ill, so he was absent.</span> — because తో so రాదు.</p>`,
+    say: [T("మూడవ రకం. కారణం, అంటే Cause."),
+          T("because, since, as తర్వాత పూర్తి వాక్యం వస్తుంది."),
+          E("He was absent because he was ill."),
+          T("because of, due to, owing to తర్వాత noun మాత్రమే వస్తుంది."),
+          E("He was absent because of illness."),
+          T("because, because of మధ్య తేడా ఇదే. ఒకదాని తర్వాత వాక్యం, మరొక దాని తర్వాత noun."),
+          E("Since it is late, let us go home."), E("As I was tired, I went to bed early."),
+          E("The match was cancelled due to rain."),
+          T("ట్రిక్. because ఉన్న వాక్యంలో so రాదు. Because he was ill, so he was absent అనడం తప్పు.")] },
+
+  { title: "4. ఫలితం – Result", html: `
+      <div class="tablewrap"><table>
+        <thead><tr><th>Linker</th><th>ఉదాహరణ</th></tr></thead>
+        <tbody>
+          <tr><td class="pv">so</td><td>It was raining, <b>so</b> we stayed at home.</td></tr>
+          <tr><td class="pv">therefore / hence / thus</td><td>He worked hard. <b>Therefore</b>, he passed.</td></tr>
+          <tr><td class="pv">consequently / as a result</td><td>He did not study. <b>As a result</b>, he failed.</td></tr>
+          <tr><td class="pv">so + adj / adv + that</td><td>He was <b>so</b> tired <b>that</b> he slept at once.</td></tr>
+          <tr><td class="pv">such + (a) + adj + noun + that</td><td>It was <b>such a</b> hot day <b>that</b> we stayed in.</td></tr>
+        </tbody></table></div>
+      <p style="margin-top:8px"><b>ట్రిక్:</b> <b>so</b> తర్వాత adjective మాత్రమే · <b>such</b> తర్వాత noun ఉంటుంది. <b>too … to</b> = ప్రతికూల ఫలితం: He is <b>too</b> weak <b>to</b> walk.</p>`,
+    say: [T("నాలుగవ రకం. ఫలితం, అంటే Result."),
+          T("so అంటే అందువల్ల."), E("It was raining, so we stayed at home."),
+          T("therefore, hence, thus కొంచెం formal. సాధారణంగా కొత్త వాక్యం మొదట్లో వస్తాయి."),
+          E("He worked hard. Therefore, he passed."),
+          E("He did not study. As a result, he failed."),
+          T("so that జంట. so తర్వాత adjective, ఆ తర్వాత that."),
+          E("He was so tired that he slept at once."),
+          T("such that జంట. such తర్వాత noun ఉంటుంది."),
+          E("It was such a hot day that we stayed in."),
+          T("ట్రిక్. so తర్వాత adjective మాత్రమే. such తర్వాత noun ఉంటుంది."),
+          T("too to అంటే ప్రతికూల ఫలితం. ఎంత బలహీనంగా ఉన్నాడంటే నడవలేడు."), E("He is too weak to walk.")] },
+
+  { title: "5. షరతు – Condition", html: `
+      <div class="tablewrap"><table>
+        <thead><tr><th>Linker</th><th>అర్థం</th><th>ఉదాహరణ</th></tr></thead>
+        <tbody>
+          <tr><td class="pv">if</td><td>ఒకవేళ</td><td><b>If</b> you work hard, you will pass.</td></tr>
+          <tr><td class="pv">unless</td><td>= if … not (లేకపోతే)</td><td><b>Unless</b> you work hard, you will fail.</td></tr>
+          <tr><td class="pv">provided that / as long as</td><td>ఆ షరతు మీద మాత్రమే</td><td>You can go <b>provided that</b> you return early.</td></tr>
+          <tr><td class="pv">in case</td><td>ఒకవేళ జరిగితే (ముందు జాగ్రత్త)</td><td>Take an umbrella <b>in case</b> it rains.</td></tr>
+          <tr><td class="pv">otherwise / or else</td><td>లేకపోతే</td><td>Hurry up, <b>otherwise</b> you will miss the bus.</td></tr>
+        </tbody></table></div>
+      <p style="margin-top:8px"><b>ట్రిక్:</b> <b>unless</b> లోనే <b>not</b> ఉంది. <span class="wrong">Unless you do not work hard</span> <span class="good">Unless you work hard</span> · unless / if clause లో <b>will</b> రాదు.</p>`,
+    say: [T("ఐదవ రకం. షరతు, అంటే Condition."),
+          T("if అంటే ఒకవేళ."), E("If you work hard, you will pass."),
+          T("unless అంటే if not. లేకపోతే అని అర్థం."), E("Unless you work hard, you will fail."),
+          T("అతి ముఖ్యమైన ట్రిక్. unless లోనే not ఉంది. కాబట్టి unless తో మళ్ళీ not వాడకూడదు."),
+          T("Unless you do not work hard అనడం తప్పు. Unless you work hard అనాలి."),
+          T("అలాగే if, unless ఉన్న భాగంలో will రాదు. Simple present వస్తుంది."),
+          T("provided that అంటే ఆ షరతు మీద మాత్రమే."), E("You can go provided that you return early."),
+          T("in case అంటే ముందు జాగ్రత్తగా."), E("Take an umbrella in case it rains."),
+          T("otherwise అంటే లేకపోతే."), E("Hurry up, otherwise you will miss the bus.")] },
+
+  { title: "6. ఉద్దేశం – Purpose", html: `
+      <div class="tablewrap"><table>
+        <thead><tr><th>Linker</th><th>నిర్మాణం</th><th>ఉదాహరణ</th></tr></thead>
+        <tbody>
+          <tr><td class="pv">so that</td><td>+ subject + can / could / may / might</td><td>He works hard <b>so that</b> he <b>can</b> pass.</td></tr>
+          <tr><td class="pv">in order to</td><td>+ V1</td><td>He saves money <b>in order to</b> buy a car.</td></tr>
+          <tr><td class="pv">to</td><td>+ V1</td><td>She went to the market <b>to</b> buy vegetables.</td></tr>
+          <tr><td class="pv">lest</td><td>+ subject + should (= so that … not)</td><td>Walk carefully <b>lest</b> you <b>should</b> fall.</td></tr>
+        </tbody></table></div>
+      <p style="margin-top:8px"><b>ట్రిక్:</b> <b>lest</b> లో not దాగి ఉంది → <b>lest … should</b>, not రాదు.</p>`,
+    say: [T("ఆరవ రకం. ఉద్దేశం, అంటే Purpose."),
+          T("so that తర్వాత subject, ఆ తర్వాత can, could, may, might వస్తాయి."),
+          E("He works hard so that he can pass."),
+          T("in order to, to తర్వాత V one వస్తుంది."),
+          E("He saves money in order to buy a car."),
+          T("lest అంటే so that not. ఏదైనా జరగకుండా ఉండటానికి."),
+          E("Walk carefully lest you should fall."),
+          T("ట్రిక్. lest లోనే not దాగి ఉంది. lest తర్వాత ఎప్పుడూ should. not రాదు.")] },
+
+  { title: "7. సమయం – Time", html: `
+      <div class="tablewrap"><table>
+        <thead><tr><th>Linker</th><th>ఉదాహరణ</th></tr></thead>
+        <tbody>
+          <tr><td class="pv">when</td><td><b>When</b> I reached the station, the train had left.</td></tr>
+          <tr><td class="pv">while</td><td><b>While</b> I was reading, the light went off.</td></tr>
+          <tr><td class="pv">before / after</td><td>Wash your hands <b>before</b> you eat.</td></tr>
+          <tr><td class="pv">as soon as</td><td><b>As soon as</b> he saw the police, he ran away.</td></tr>
+          <tr><td class="pv">until / till</td><td>Wait here <b>until</b> I come.</td></tr>
+          <tr><td class="pv">no sooner … than</td><td><b>No sooner</b> had he reached <b>than</b> it started raining.</td></tr>
+          <tr><td class="pv">hardly / scarcely … when</td><td><b>Hardly</b> had he reached <b>when</b> it started raining.</td></tr>
+        </tbody></table></div>
+      <p style="margin-top:8px"><b>ట్రిక్:</b> <b>No sooner → than</b> · <b>Hardly / Scarcely → when</b> · మొదట్లో వస్తే inversion: <b>had he</b>, he had కాదు. <b>until</b> తో not రాదు.</p>`,
+    say: [T("ఏడవ రకం. సమయం, అంటే Time."),
+          E("When I reached the station, the train had left."),
+          T("while అంటే జరుగుతున్నప్పుడు. దీనితో ఎక్కువగా continuous tense వస్తుంది."),
+          E("While I was reading, the light went off."),
+          T("as soon as అంటే వెంటనే."), E("As soon as he saw the police, he ran away."),
+          T("until అంటే వరకు. until తో not రాదు. Wait here until I come అనాలి."),
+          T("ఇప్పుడు పరీక్షలో తప్పక వచ్చే జంటలు."),
+          T("no sooner తో ఎప్పుడూ than వస్తుంది."), E("No sooner had he reached than it started raining."),
+          T("hardly, scarcely తో ఎప్పుడూ when వస్తుంది."), E("Hardly had he reached when it started raining."),
+          T("ఇవి వాక్యం మొదట్లో వస్తే క్రమం మారుతుంది. had he అనాలి. he had కాదు.")] },
+
+  { title: "8. జంట Linkers – Correlatives", html: `
+      <div class="tablewrap"><table>
+        <thead><tr><th>జంట</th><th>ఉదాహరణ</th></tr></thead>
+        <tbody>
+          <tr><td class="pv">both … and</td><td><b>Both</b> Ravi <b>and</b> Sita are present.</td></tr>
+          <tr><td class="pv">either … or</td><td><b>Either</b> you <b>or</b> he <b>has</b> to go.</td></tr>
+          <tr><td class="pv">neither … nor</td><td><b>Neither</b> he <b>nor</b> his friends <b>were</b> there.</td></tr>
+          <tr><td class="pv">not only … but also</td><td><b>Not only</b> the students <b>but also</b> the teacher <b>was</b> happy.</td></tr>
+          <tr><td class="pv">whether … or</td><td>I don't know <b>whether</b> he will come <b>or</b> not.</td></tr>
+          <tr><td class="pv">no sooner … than</td><td>(సమయం భాగం చూడండి)</td></tr>
+        </tbody></table></div>
+      <p style="margin-top:8px"><b>ట్రిక్ (Proximity rule):</b> either…or, neither…nor, not only…but also → verb <b>దగ్గరగా ఉన్న subject</b> ను బట్టి. <span class="wrong">neither … or</span> <span class="good">neither … nor</span></p>`,
+    say: [T("ఎనిమిదవ రకం. జంట linkers. వీటిని Correlatives అంటారు. ఇవి ఎప్పుడూ జంటగానే వస్తాయి."),
+          T("both and."), E("Both Ravi and Sita are present."),
+          T("either or."), E("Either you or he has to go."),
+          T("neither nor."), E("Neither he nor his friends were there."),
+          T("not only but also."), E("Not only the students but also the teacher was happy."),
+          T("జంటలు మారకూడదు. neither తో nor వస్తుంది. neither or అనడం తప్పు. either తో or వస్తుంది."),
+          T("ముఖ్యమైన ట్రిక్. either or, neither nor, not only but also. వీటితో verb దగ్గరగా ఉన్న subject ను బట్టి వస్తుంది."),
+          T("దీన్నే proximity rule అంటారు. both and తో మాత్రం verb ఎప్పుడూ బహువచనం.")] },
+
+  { title: "Linker స్థానం & విరామ చిహ్నాలు", html: `
+      <div class="tablewrap"><table>
+        <thead><tr><th>స్థానం</th><th>Linkers</th><th>ఉదాహరణ</th></tr></thead>
+        <tbody>
+          <tr><td>రెండు భాగాల మధ్య</td><td class="pv">and, but, or, so, yet</td><td>I was tired, <b>so</b> I slept.</td></tr>
+          <tr><td>మొదట్లో లేదా మధ్యలో</td><td class="pv">although, because, if, when, unless</td><td><b>Although</b> he is rich, he is humble.</td></tr>
+          <tr><td>కొత్త వాక్యం మొదట్లో + కామా</td><td class="pv">however, therefore, moreover, nevertheless</td><td>He was ill. <b>However,</b> he came.</td></tr>
+        </tbody></table></div>
+      <p style="margin-top:8px"><b>Cohesion:</b> ఒక paragraph లో వాక్యాలను linkers సరిగ్గా జోడిస్తే అర్థం సాఫీగా సాగుతుంది: <i>First… Then… After that… Finally…</i></p>`,
+    say: [T("ఇప్పుడు linker స్థానం, విరామ చిహ్నాలు."),
+          T("and, but, or, so, yet. ఇవి రెండు భాగాల మధ్యలో వస్తాయి."),
+          E("I was tired, so I slept."),
+          T("although, because, if, when, unless. ఇవి వాక్యం మొదట్లో గానీ మధ్యలో గానీ రావచ్చు. మొదట్లో వస్తే రెండు భాగాల మధ్య కామా ఉంటుంది."),
+          E("Although he is rich, he is humble."),
+          T("however, therefore, moreover, nevertheless. ఇవి కొత్త వాక్యం మొదట్లో వస్తాయి. వాటి తర్వాత కామా ఉంటుంది."),
+          E("He was ill. However, he came."),
+          T("Cohesion అంటే ఒక paragraph లో వాక్యాలు సాఫీగా కలిసి ఉండటం. దానికి first, then, after that, finally వంటి linkers సహాయపడతాయి.")] },
+
+  { title: "Objective ప్రశ్నలు – 1", html: `
+      <div class="q">1. ___ he is poor, he is honest.<div class="opts"><span>A) Despite</span><span>B) Although</span><span>C) Because</span><span>D) Unless</span></div><div class="ans">Ans: B) Although – తర్వాత పూర్తి వాక్యం, వ్యతిరేకత</div></div>
+      <div class="q">2. ___ the heavy rain, the match continued.<div class="opts"><span>A) Although</span><span>B) Despite</span><span>C) Because</span><span>D) Though</span></div><div class="ans">Ans: B) Despite – తర్వాత noun</div></div>
+      <div class="q">3. You will fail ___ you study well.<div class="opts"><span>A) if</span><span>B) unless</span><span>C) because</span><span>D) so</span></div><div class="ans">Ans: B) unless (= if … not)</div></div>
+      <div class="q">4. No sooner had I reached the station ___ the train left.<div class="opts"><span>A) when</span><span>B) then</span><span>C) than</span><span>D) as</span></div><div class="ans">Ans: C) than</div></div>`,
+    say: [T("ఇప్పుడు పరీక్షలో వచ్చే ప్రశ్నలు చూద్దాం."),
+          T("ప్రశ్న ఒకటి."), E("Blank he is poor, he is honest. Options: despite, although, because, unless."),
+          T("రెండు భాగాల మధ్య వ్యతిరేకత ఉంది. ఖాళీ తర్వాత పూర్తి వాక్యం ఉంది. కాబట్టి although. సమాధానం B."),
+          T("ప్రశ్న రెండు."), E("Blank the heavy rain, the match continued."),
+          T("వ్యతిరేకత ఉంది. కానీ ఖాళీ తర్వాత noun మాత్రమే ఉంది. కాబట్టి despite. సమాధానం B."),
+          T("ప్రశ్న మూడు."), E("You will fail blank you study well."),
+          T("బాగా చదవకపోతే ఫెయిల్ అవుతావు. అంటే if not. కాబట్టి unless. సమాధానం B."),
+          T("ప్రశ్న నాలుగు."), E("No sooner had I reached the station blank the train left."),
+          T("no sooner తో ఎప్పుడూ than. సమాధానం C.")] },
+
+  { title: "Objective ప్రశ్నలు – 2", html: `
+      <div class="q">5. He was absent ___ his illness.<div class="opts"><span>A) because</span><span>B) because of</span><span>C) since</span><span>D) as</span></div><div class="ans">Ans: B) because of – తర్వాత noun</div></div>
+      <div class="q">6. Neither Ravi ___ his brothers ___ present.<div class="opts"><span>A) or, was</span><span>B) nor, was</span><span>C) nor, were</span><span>D) or, were</span></div><div class="ans">Ans: C) nor, were – దగ్గరి subject (brothers)</div></div>
+      <div class="q">7. Run fast ___ you should miss the bus.<div class="opts"><span>A) so that</span><span>B) lest</span><span>C) unless</span><span>D) until</span></div><div class="ans">Ans: B) lest – should తో</div></div>
+      <div class="q">8. It was raining heavily. ___, we went out.<div class="opts"><span>A) Therefore</span><span>B) Moreover</span><span>C) However</span><span>D) Because</span></div><div class="ans">Ans: C) However – వ్యతిరేకత</div></div>`,
+    say: [T("ప్రశ్న ఐదు."), E("He was absent blank his illness."),
+          T("ఖాళీ తర్వాత his illness అనే noun మాత్రమే ఉంది. కాబట్టి because of. సమాధానం B."),
+          T("ప్రశ్న ఆరు."), E("Neither Ravi blank his brothers blank present."),
+          T("neither తో nor. Verb దగ్గరగా ఉన్న brothers ను బట్టి బహువచనం were. సమాధానం C."),
+          T("ప్రశ్న ఏడు."), E("Run fast blank you should miss the bus."),
+          T("should ఉంది, బస్ మిస్ కాకుండా ఉండటానికి. కాబట్టి lest. సమాధానం B."),
+          T("ప్రశ్న ఎనిమిది."), E("It was raining heavily. Blank, we went out."),
+          T("వర్షం పడుతున్నా బయటకు వెళ్ళాం. ఇది వ్యతిరేకత. కొత్త వాక్యం మొదట్లో కామాతో. కాబట్టి However. సమాధానం C.")] },
+
+  { title: "సులువైన ట్రిక్స్", html: `
+      <p>✔ ముందు <b>సంబంధం</b> గుర్తించండి: కలపడమా? వ్యతిరేకతా? కారణమా? ఫలితమా? షరతా?</p>
+      <p>✔ ఖాళీ తర్వాత <b>పూర్తి వాక్యం</b> → although, because · <b>noun / V-ing</b> → despite, because of, due to.</p>
+      <p>✔ although ✗ but · because ✗ so · unless ✗ not · lest ✗ not · until ✗ not.</p>
+      <p>✔ despite ✗ of → <b>despite</b> / <b>in spite of</b>.</p>
+      <p>✔ No sooner → <b>than</b> · Hardly / Scarcely → <b>when</b> · మొదట్లో వస్తే <b>had he</b>.</p>
+      <p>✔ either → or · neither → nor · both → and · not only → but also.</p>
+      <p>✔ either/or, neither/nor, not only/but also → verb <b>దగ్గరి subject</b> ను బట్టి · as well as → <b>మొదటి subject</b>.</p>
+      <p>✔ so + adjective + that · such + (a) + noun + that.</p>
+      <p>✔ however, therefore, moreover → కొత్త వాక్యం మొదట్లో, <b>తర్వాత కామా</b>.</p>`,
+    say: [T("చివరగా సులువైన ట్రిక్స్."),
+          T("ముందుగా రెండు భాగాల మధ్య సంబంధం గుర్తించండి. కలపడమా, వ్యతిరేకతా, కారణమా, ఫలితమా, షరతా."),
+          T("ఖాళీ తర్వాత పూర్తి వాక్యం ఉంటే although, because. noun గానీ ing గానీ ఉంటే despite, because of, due to."),
+          T("ఈ జంటలు రావు. although తో but రాదు. because తో so రాదు. unless తో not రాదు. lest తో not రాదు. until తో not రాదు."),
+          T("despite of అనకూడదు. despite, లేదా in spite of అనాలి."),
+          T("no sooner తో than. hardly, scarcely తో when. మొదట్లో వస్తే had he."),
+          T("either తో or. neither తో nor. both తో and. not only తో but also."),
+          T("either or, neither nor, not only but also. వీటితో verb దగ్గరి subject ను బట్టి. as well as తో మొదటి subject ను బట్టి."),
+          T("so తర్వాత adjective. such తర్వాత noun."),
+          T("however, therefore, moreover కొత్త వాక్యం మొదట్లో వస్తాయి. వాటి తర్వాత కామా."),
+          T("ఈ పాఠం ఇక్కడితో పూర్తయింది. శ్రద్ధగా విన్నందుకు ధన్యవాదాలు. మీ పరీక్షకు శుభాకాంక్షలు.")] },
+];
+
+// Build narration for word-list sections
+sections.forEach(s => {
+  if (!s.list) return;
+  s.html = `<div class="tablewrap"><table><thead><tr><th>Phrasal Verb</th><th>Meaning</th><th>తెలుగు</th></tr></thead><tbody>` +
+    s.list.map(([p,m,t]) => `<tr><td class="pv">${p}</td><td>${m}</td><td>${t}</td></tr>`).join('') + `</tbody></table></div>`;
+  s.say = [T('ఇప్పుడు ముఖ్యమైన phrasal verbs, వాటి అర్థాలు నేర్చుకుందాం.')];
+  s.list.forEach(([p,m,t]) => { s.say.push(E(`${p}. ${m}.`)); s.say.push(T(`తెలుగులో, ${t}.`)); });
+});
+
+// Render
+const root = document.getElementById('lessons');
+sections.forEach((s, si) => {
+  const card = document.createElement('section');
+  card.className = 'card'; card.id = 'sec' + (si + 1);
+  card.innerHTML = `<h2><span class="no">${si + 1}</span><span>${s.title}</span></h2>
+    <div class="content">${s.html}</div>
+    <details class="say"${si === 0 ? ' open' : ''}><summary><span>గురువు వివరణ (వినిపించే పాఠం)</span><button class="from" data-s="${si}" type="button">ఇక్కడి నుండి వినండి</button></summary>
+    <div class="lines">${s.say.map(([l, t], i) => `<span class="seg" lang="${l}" data-i="${i}">${t}</span>`).join('')}</div></details>`;
+  root.appendChild(card);
+});
+
+// Voices
+let voices = [];
+function loadVoices() { try { voices = speechSynthesis.getVoices(); } catch (e) { voices = []; } checkVoices(); }
+function pick(lang) {
+  const want = lang === 'te' ? ['te-IN', 'te'] : ['en-IN', 'en-GB', 'en-US', 'en'];
+  for (const w of want) { const v = voices.find(v => v.lang && v.lang.replace('_','-').toLowerCase().startsWith(w.toLowerCase())); if (v) return v; }
+  return null;
+}
+function checkVoices() {
+  const warn = document.getElementById('voicewarn');
+  if (!('speechSynthesis' in window)) { warn.textContent = 'ఈ బ్రౌజర్‌లో చదివే సౌకర్యం లేదు. Chrome బ్రౌజర్‌లో తెరవండి.'; warn.hidden = false; return; }
+  if (voices.length && !pick('te')) {
+    warn.textContent = 'మీ పరికరంలో తెలుగు వాయిస్ కనిపించలేదు. ఫోన్ Settings → Text-to-speech → Google Speech Services లో తెలుగు వాయిస్ డౌన్‌లోడ్ చేయండి.';
+    warn.hidden = false;
+  } else warn.hidden = true;
+}
+if ('speechSynthesis' in window) { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; } else checkVoices();
+
+// Player
+const totalSegs = sections.reduce((a, s) => a + s.say.length, 0);
+let cur = { s: 0, i: 0 }, started = false, playing = false, gen = 0, rate = 0.9, wake = null;
+const toggle = document.getElementById('toggle'), label = document.getElementById('toggleLabel');
+
+function segEl(s, i) { return document.querySelector(`#sec${s + 1} .seg[data-i="${i}"]`); }
+function mark() {
+  document.querySelectorAll('.seg.now').forEach(e => e.classList.remove('now'));
+  document.querySelectorAll('.card.active').forEach(e => e.classList.remove('active'));
+  const card = document.getElementById('sec' + (cur.s + 1));
+  card.classList.add('active');
+  const el = segEl(cur.s, cur.i);
+  if (playing && el) { el.classList.add('now'); card.querySelector('details').open = true; }
+  const done = sections.slice(0, cur.s).reduce((a, s) => a + s.say.length, 0) + cur.i;
+  document.getElementById('prog').style.width = (100 * done / totalSegs) + '%';
+  document.getElementById('nowTitle').innerHTML = `${playing ? 'వింటున్నారు' : (started ? 'ఆగిపోయింది' : 'సిద్ధంగా ఉంది')} · <b>${cur.s + 1}. ${sections[cur.s].title}</b>`;
+}
+function scrollToCur() {
+  const el = segEl(cur.s, cur.i) || document.getElementById('sec' + (cur.s + 1));
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+}
+function speak() {
+  if (!playing) return;
+  if (cur.i >= sections[cur.s].say.length) {
+    if (cur.s + 1 >= sections.length) { cur = { s: sections.length - 1, i: sections[sections.length - 1].say.length - 1 }; setPlaying(false); document.getElementById('prog').style.width = '100%'; document.getElementById('nowTitle').innerHTML = 'పాఠం పూర్తయింది · <b>మళ్ళీ వినడానికి ↺ నొక్కండి</b>'; return; }
+    cur.s++; cur.i = 0;
+  }
+  const [lang, text] = sections[cur.s].say[cur.i];
+  mark(); scrollToCur();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang === 'te' ? 'te-IN' : 'en-IN';
+  const v = pick(lang); if (v) u.voice = v;
+  u.rate = rate;
+  const my = ++gen;
+  const advance = () => { if (my !== gen || !playing) return; cur.i++; setTimeout(speak, 220); };
+  u.onend = advance;
+  u.onerror = (e) => { if (e.error === 'interrupted' || e.error === 'canceled') return; advance(); };
+  speechSynthesis.speak(u);
+}
+async function setPlaying(on) {
+  playing = on; if (on) started = true;
+  toggle.classList.toggle('isOn', on);
+  toggle.setAttribute('aria-pressed', on);
+  label.textContent = on ? 'ఆఫ్ – ఆపండి' : 'ఆన్ – వినండి';
+  if (on) {
+    try { wake = await navigator.wakeLock?.request('screen'); } catch (e) { wake = null; }
+  } else {
+    gen++; try { speechSynthesis.cancel(); } catch (e) {}
+    try { wake && wake.release(); } catch (e) {} wake = null;
+  }
+  mark();
+}
+function startAt(s, i = 0) {
+  gen++; try { speechSynthesis.cancel(); } catch (e) {}
+  cur = { s, i };
+  if (!playing) setPlaying(true).then(() => setTimeout(speak, 120)); else setTimeout(speak, 120);
+}
+toggle.addEventListener('click', () => {
+  if (!('speechSynthesis' in window)) return;
+  if (playing) setPlaying(false); else { setPlaying(true); try { speechSynthesis.cancel(); } catch (e) {} setTimeout(speak, 120); }
+});
+document.getElementById('next').addEventListener('click', () => { const s = Math.min(cur.s + 1, sections.length - 1); if (playing) startAt(s); else { cur = { s, i: 0 }; mark(); scrollToCur(); } });
+document.getElementById('prev').addEventListener('click', () => { const s = cur.i > 1 ? cur.s : Math.max(cur.s - 1, 0); if (playing) startAt(s); else { cur = { s, i: 0 }; mark(); scrollToCur(); } });
+document.getElementById('restart').addEventListener('click', () => { if (playing) startAt(0); else { cur = { s: 0, i: 0 }; mark(); scrollToCur(); } });
+document.querySelectorAll('.from').forEach(b => b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); startAt(+b.dataset.s); }));
+document.querySelectorAll('.seg').forEach(el => el.addEventListener('click', () => {
+  const s = +el.closest('.card').id.slice(3) - 1; startAt(s, +el.dataset.i);
+}));
+const rateIn = document.getElementById('rate'), rateOut = document.getElementById('rateOut');
+rateIn.addEventListener('input', () => { rate = +rateIn.value; rateOut.textContent = rate.toFixed(1) + '×'; });
+document.addEventListener('visibilitychange', async () => { if (playing && document.visibilityState === 'visible' && !wake) { try { wake = await navigator.wakeLock?.request('screen'); } catch (e) {} } });
+mark();
+</script>
+
+</body>
+</html>
